@@ -8,6 +8,9 @@ const File = require('../models/File');
 const { fileLimiter } = require('../middleware/rateLimiter');
 const { param, validationResult } = require('express-validator');
 
+// Apply rate limiter middleware globally to all routes in this router
+router.use(fileLimiter);
+
 // JWT middleware
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
