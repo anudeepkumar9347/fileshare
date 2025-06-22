@@ -50,7 +50,7 @@ router.post('/upload', auth, fileLimiter, upload.single('file'), async (req, res
   res.json({
     fileId: file._id,
     fileName: file.originalName,
-    filePath: '/api/files/download/${file._id}'
+    filePath: `/api/files/download/${file._id}`  // ✅ FIXED: backtick for template literal
   });
 });
 
@@ -60,7 +60,7 @@ router.get('/', auth, fileLimiter, async (req, res) => {
   res.json(files.map(f => ({
     fileId: f._id,
     fileName: f.originalName,
-    downloadLink: /api/files/download/${f._id}
+    downloadLink: `/api/files/download/${f._id}`  // ✅ FIXED: backtick for template literal
   })));
 });
 
