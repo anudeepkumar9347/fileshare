@@ -6,6 +6,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const File = require('../models/File');
 const { fileLimiter } = require('../middleware/rateLimiter');
+const { param, validationResult } = require('express-validator');
 
 // JWT middleware
 const auth = (req, res, next) => {
@@ -63,31 +64,49 @@ router.get('/', auth, fileLimiter, async (req, res) => {
   })));
 });
 
-// Download a file
-router.get('/download/:id', auth, fileLimiter, async (req, res) => {
-  const file = await File.findById(req.params.id);
-  if (!file || file.user.toString() !== req.user.id) {
-    return res.status(404).json({ message: 'File not found or unauthorized' });
+// Download a file with validation
+router.get(
+  '/download/:id',
+  auth,
+  fileLimiter,
+  param('id').isMongoId().withMessage('Invalid file ID'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const file = await File.findById(req.params.id);
+    if (!file || file.user.toString() !== req.user.id) {
+      return res.status(404).json({ message: 'File not found or unauthorized' });
+    }
+
+    const filePath = path.join(__dirname, '../uploads', file.storedName);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'File is missing on server' });
+    }
+
+    res.download(filePath, file.originalName);
   }
+);
 
-  const filePath = path.join(__dirname, '../uploads', file.storedName);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'File is missing on server' });
+// Delete a file with validation
+router.delete(
+  '/:id',
+  auth,
+  fileLimiter,
+  param('id').isMongoId().withMessage('Invalid file ID'),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    const file = await File.findOne({ _id: req.params.id, user: req.user.id });
+    if (!file) return res.status(404).json({ message: 'File not found' });
+
+    const fullPath = path.join(__dirname, '../uploads', file.storedName);
+    if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+
+    await file.deleteOne();
+    res.json({ message: 'File deleted' });
   }
-
-  res.download(filePath, file.originalName);
-});
-
-// Delete a file
-router.delete('/:id', auth, fileLimiter, async (req, res) => {
-  const file = await File.findOne({ _id: req.params.id, user: req.user.id });
-  if (!file) return res.status(404).json({ message: 'File not found' });
-
-  const fullPath = path.join(__dirname, '../uploads', file.storedName);
-  if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
-
-  await file.deleteOne();
-  res.json({ message: 'File deleted' });
-});
+);
 
 module.exports = router;
