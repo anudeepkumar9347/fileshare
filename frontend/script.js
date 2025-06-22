@@ -1,48 +1,49 @@
-// frontend/script.js
 let token = '';
-const API_BASE = 'https://fileshare-o1fc.onrender.com'; 
-
+const API_BASE = 'https://fileshare-o1fc.onrender.com'; // ✅ No trailing slash
 
 async function register() {
-    console.log("Register button clicked");
-
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    const res = await fetch(`${API_BASE}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
+    try {
+        const res = await fetch(${API_BASE}/api/auth/register, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
 
-    const data = await res.json();
-    document.getElementById('auth-status').textContent = data.message || 'Registered!';
-    console.log("Register response:", data);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Registration failed');
+
+        document.getElementById('auth-status').textContent = data.message;
+    } catch (err) {
+        document.getElementById('auth-status').textContent = err.message;
+    }
 }
 
 async function login() {
-    console.log("Login button clicked");
-
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
+    try {
+        const res = await fetch(${API_BASE}/api/auth/login, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
 
-    const data = await res.json();
-    console.log("Login response:", data);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Login failed');
 
-    if (data.token) {
-        token = data.token;
-        document.getElementById('auth-status').textContent = 'Logged in!';
-        document.getElementById('auth-section').style.display = 'none';
-        document.getElementById('upload-section').style.display = 'block';
-        loadFiles();
-    } else {
-        document.getElementById('auth-status').textContent = data.message || 'Login failed';
+        if (data.token) {
+            token = data.token;
+            document.getElementById('auth-status').textContent = 'Logged in!';
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('upload-section').style.display = 'block';
+            loadFiles(); // Load user files after login
+        }
+    } catch (err) {
+        document.getElementById('auth-status').textContent = err.message;
     }
 }
 
@@ -55,51 +56,67 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     formData.append('file', file);
 
     try {
-        const res = await fetch(`${API_BASE}/api/files/upload`, {
+        const res = await fetch(${API_BASE}/api/files/upload, {
             method: 'POST',
             headers: {
-                'Authorization': token
+                'Authorization': Bearer ${token} // ✅ Bearer prefix required
             },
             body: formData
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Upload failed');
+        if (!res.ok) throw new Error(data.message);
 
-        document.getElementById('result').textContent = `Uploaded: ${data.fileName}`;
-        loadFiles();
+        document.getElementById('result').textContent = Uploaded: ${data.fileName};
+        loadFiles(); // Refresh file list
     } catch (err) {
         document.getElementById('result').textContent = 'Upload failed: ' + err.message;
-        console.error("Upload failed:", err);
     }
 });
 
 async function loadFiles() {
-    const res = await fetch(`${API_BASE}/api/files`);
-    const files = await res.json();
+    try {
+        const res = await fetch(${API_BASE}/api/files, {
+            method: 'GET',
+            headers: {
+                'Authorization': Bearer ${token} // ✅ Must use Bearer here too
+            }
+        });
 
-    const list = document.getElementById('fileList');
-    list.innerHTML = '';
+        const files = await res.json();
+        const list = document.getElementById('fileList');
+        list.innerHTML = '';
 
-    files.forEach(file => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <a href="${file.path}" target="_blank">${file.originalName}</a>
-            <button onclick="deleteFile('${file._id}')">Delete</button>
-        `;
-        list.appendChild(li);
-    });
+        files.forEach(file => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <a href="${API_BASE}/api/files/download/${file.fileId}" target="_blank">${file.fileName}</a>
+                <button onclick="deleteFile('${file.fileId}')">Delete</button>
+            `;
+            list.appendChild(li);
+        });
+    } catch (err) {
+        console.error("Error loading files:", err.message);
+    }
 }
 
 async function deleteFile(id) {
-    const confirmed = confirm("Are you sure you want to delete this file?");
-    if (!confirmed) return;
+    if (!confirm("Are you sure you want to delete this file?")) return;
 
-    const res = await fetch(`${API_BASE}/api/files/${id}`, {
-        method: 'DELETE'
-    });
+    try {
+        const res = await fetch(${API_BASE}/api/files/${id}, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': Bearer ${token} // ✅ Again, Bearer here
+            }
+        });
 
-    const data = await res.json();
-    alert(data.message);
-    loadFiles();
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+
+        alert(data.message);
+        loadFiles(); // Refresh list
+    } catch (err) {
+        alert("Delete failed: " + err.message);
+    }
 }
