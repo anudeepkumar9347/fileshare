@@ -14,7 +14,6 @@ async function register() {
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Registration failed');
-
         document.getElementById('auth-status').textContent = data.message;
     } catch (err) {
         document.getElementById('auth-status').textContent = err.message;
@@ -40,7 +39,7 @@ async function login() {
             document.getElementById('auth-status').textContent = 'Logged in!';
             document.getElementById('auth-section').style.display = 'none';
             document.getElementById('upload-section').style.display = 'block';
-            loadFiles(); // Load user files after login
+            loadFiles();
         }
     } catch (err) {
         document.getElementById('auth-status').textContent = err.message;
@@ -49,7 +48,6 @@ async function login() {
 
 document.getElementById('uploadForm').addEventListener('submit', async function (e) {
     e.preventDefault();
-
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
     const formData = new FormData();
@@ -58,17 +56,14 @@ document.getElementById('uploadForm').addEventListener('submit', async function 
     try {
         const res = await fetch(${API_BASE}/api/files/upload, {
             method: 'POST',
-            headers: {
-                'Authorization': Bearer ${token} // ✅ Bearer prefix required
-            },
+            headers: { 'Authorization': Bearer ${token} },
             body: formData
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-
         document.getElementById('result').textContent = Uploaded: ${data.fileName};
-        loadFiles(); // Refresh file list
+        loadFiles();
     } catch (err) {
         document.getElementById('result').textContent = 'Upload failed: ' + err.message;
     }
@@ -78,9 +73,7 @@ async function loadFiles() {
     try {
         const res = await fetch(${API_BASE}/api/files, {
             method: 'GET',
-            headers: {
-                'Authorization': Bearer ${token} // ✅ Must use Bearer here too
-            }
+            headers: { 'Authorization': Bearer ${token} }
         });
 
         const files = await res.json();
@@ -106,16 +99,13 @@ async function deleteFile(id) {
     try {
         const res = await fetch(${API_BASE}/api/files/${id}, {
             method: 'DELETE',
-            headers: {
-                'Authorization': Bearer ${token} // ✅ Again, Bearer here
-            }
+            headers: { 'Authorization': Bearer ${token} }
         });
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.message);
-
         alert(data.message);
-        loadFiles(); // Refresh list
+        loadFiles();
     } catch (err) {
         alert("Delete failed: " + err.message);
     }
