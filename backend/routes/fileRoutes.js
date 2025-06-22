@@ -1,4 +1,3 @@
-// backend/routes/fileRoutes.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -50,7 +49,7 @@ router.post('/upload', auth, fileLimiter, upload.single('file'), async (req, res
   res.json({
     fileId: file._id,
     fileName: file.originalName,
-    filePath: `/api/files/download/${file._id}`  // ✅ FIXED: backtick for template literal
+    filePath: `/api/files/download/${file._id}` // ✅ Fixed template string
   });
 });
 
@@ -60,12 +59,12 @@ router.get('/', auth, fileLimiter, async (req, res) => {
   res.json(files.map(f => ({
     fileId: f._id,
     fileName: f.originalName,
-    downloadLink: `/api/files/download/${f._id}`  // ✅ FIXED: backtick for template literal
+    downloadLink: `/api/files/download/${f._id}` // ✅ Fixed template string
   })));
 });
 
 // 📥 Download file
-router.get('/download/:id', auth, async (req, res) => {
+router.get('/download/:id', auth, fileLimiter, async (req, res) => { // ✅ Rate limiter added
   const file = await File.findById(req.params.id);
   if (!file || file.user.toString() !== req.user.id) {
     return res.status(404).json({ message: 'File not found or unauthorized' });
@@ -80,7 +79,7 @@ router.get('/download/:id', auth, async (req, res) => {
 });
 
 // ❌ Delete file
-router.delete('/:id', auth, fileLimiter, async (req, res) => {
+router.delete('/:id', auth, fileLimiter, async (req, res) => { // ✅ Rate limiter added
   const file = await File.findOne({ _id: req.params.id, user: req.user.id });
   if (!file) return res.status(404).json({ message: 'File not found' });
 
