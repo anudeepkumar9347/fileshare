@@ -7,10 +7,11 @@ const jwt = require('jsonwebtoken');
 const File = require('../models/File');
 const { fileLimiter } = require('../middleware/rateLimiter');
 
-// Authentication middleware
+// JWT middleware
 const auth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Auth token missing' });
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallbacksecret');
     req.user = decoded;
@@ -20,7 +21,7 @@ const auth = (req, res, next) => {
   }
 };
 
-// Multer storage setup
+// Multer setup
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '../uploads');
@@ -28,19 +29,22 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + '-' + file.originalname);
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
   }
 });
 const upload = multer({ storage });
 
-// Upload endpoint
+// Upload a file
 router.post('/upload', auth, fileLimiter, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
   const file = new File({
     originalName: req.file.originalname,
     storedName: req.file.filename,
     user: req.user.id
   });
+
   await file.save();
   res.json({
     fileId: file._id,
@@ -49,7 +53,7 @@ router.post('/upload', auth, fileLimiter, upload.single('file'), async (req, res
   });
 });
 
-// List files for user
+// List user's files
 router.get('/', auth, fileLimiter, async (req, res) => {
   const files = await File.find({ user: req.user.id });
   res.json(files.map(f => ({
@@ -59,23 +63,29 @@ router.get('/', auth, fileLimiter, async (req, res) => {
   })));
 });
 
-// Download endpoint
+// Download a file
 router.get('/download/:id', auth, fileLimiter, async (req, res) => {
   const file = await File.findById(req.params.id);
   if (!file || file.user.toString() !== req.user.id) {
     return res.status(404).json({ message: 'File not found or unauthorized' });
   }
-  const p = path.join(__dirname, '../uploads', file.storedName);
-  if (!fs.existsSync(p)) return res.status(404).json({ message: 'File missing on server' });
-  res.download(p, file.originalName);
+
+  const filePath = path.join(__dirname, '../uploads', file.storedName);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File is missing on server' });
+  }
+
+  res.download(filePath, file.originalName);
 });
 
-// Delete endpoint
+// Delete a file
 router.delete('/:id', auth, fileLimiter, async (req, res) => {
   const file = await File.findOne({ _id: req.params.id, user: req.user.id });
   if (!file) return res.status(404).json({ message: 'File not found' });
-  const p = path.join(__dirname, '../uploads', file.storedName);
-  if (fs.existsSync(p)) fs.unlinkSync(p);
+
+  const fullPath = path.join(__dirname, '../uploads', file.storedName);
+  if (fs.existsSync(fullPath)) fs.unlinkSync(fullPath);
+
   await file.deleteOne();
   res.json({ message: 'File deleted' });
 });
