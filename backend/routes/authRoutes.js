@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const sanitize = require('mongo-sanitize'); // << Add this line
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallbacksecret';
 
@@ -20,8 +21,11 @@ router.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { username, password } = req.body;
-      const existingUser = await User.findOne({ username }).lean(); // ✅ safer
+      // Sanitize user input here
+      const username = sanitize(req.body.username);
+      const password = req.body.password;
+
+      const existingUser = await User.findOne({ username }).lean();
 
       if (existingUser) {
         return res.status(400).json({ message: 'Username already exists' });
@@ -50,7 +54,10 @@ router.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { username, password } = req.body;
+      // Sanitize user input here
+      const username = sanitize(req.body.username);
+      const password = req.body.password;
+
       const user = await User.findOne({ username: { $eq: username } }).select('+password');
 
       if (!user) {
