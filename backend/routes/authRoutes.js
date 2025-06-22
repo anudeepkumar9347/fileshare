@@ -51,7 +51,7 @@ router.post(
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
       const { username, password } = req.body;
-      const user = await User.findOne({ username }).select('+password');
+      const user = await User.findOne({ username: { $eq: username } }).select('+password');
 
       if (!user) {
         return res.status(400).json({ message: 'Invalid username or password' });
