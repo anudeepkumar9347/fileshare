@@ -15,6 +15,7 @@ const { dismissAlert } = require('./bot/dismissAlert');
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1); // ✅ Needed for express-rate-limit
 app.use(cors());
 
 // 👁️ Use raw body for GitHub signature verification
@@ -106,7 +107,7 @@ console.log('🔍 Trying paths:\n' + possiblePaths.join('\n'));
 
 // 🚀 Launch server
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+app.listen(PORT, () =>  {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log('🤖 GPT-bot is running and listening for GitHub CodeQL alerts...');
 });

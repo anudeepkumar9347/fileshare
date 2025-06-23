@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { authLimiter } = require('../middleware/rateLimiter');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const sanitize = require('mongo-sanitize'); // << Add this line
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallbacksecret';
 
@@ -17,27 +18,24 @@ router.post(
   ],
   async (req, res) => {
     try {
-      console.log("🔐 Register request body:", req.body);
       const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { username, password } = req.body;
+      // Sanitize user input here
+      const username = sanitize(req.body.username);
+      const password = req.body.password;
 
-      const existingUser = await User.findOne({ username });
+      const existingUser = await User.findOne({ username }).lean();
+
       if (existingUser) {
         return res.status(400).json({ message: 'Username already exists' });
       }
 
-      // No hashing here! Let the model handle it
       const user = new User({ username, password });
       await user.save();
 
-      console.log("✅ User registered:", user.username);
       res.json({ message: 'User registered successfully' });
     } catch (err) {
-      console.error("❌ Register error:", err.stack || err.message || err);
       res.status(500).json({ message: 'Server error' });
     }
   }
@@ -53,22 +51,20 @@ router.post(
   ],
   async (req, res) => {
     try {
-      console.log("🔑 Login request body:", req.body);
       const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-      const { username, password } = req.body;
+      // Sanitize user input here
+      const username = sanitize(req.body.username);
+      const password = req.body.password;
 
-      const user = await User.findOne({ username });
+      const user = await User.findOne({ username: { $eq: username } }).select('+password');
+
       if (!user) {
         return res.status(400).json({ message: 'Invalid username or password' });
       }
 
       const isMatch = await user.comparePassword(password);
-      console.log(`✅ Password match: ${isMatch}`);
-
       if (!isMatch) {
         return res.status(400).json({ message: 'Invalid username or password' });
       }
@@ -76,7 +72,6 @@ router.post(
       const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
       res.json({ token });
     } catch (err) {
-      console.error("❌ Login error:", err.stack || err.message || err);
       res.status(500).json({ message: 'Server error' });
     }
   }
