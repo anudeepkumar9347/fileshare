@@ -31,9 +31,14 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true
 }).then(() => {
   console.log('✅ MongoDB connected');
+
+  // 🔍 Log the active database name
+  console.log('📦 Using DB:', mongoose.connection.name);
+
 }).catch(err => {
   console.error('❌ MongoDB connection failed:', err.message);
 });
+
 
 // 📁 Static file hosting
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
