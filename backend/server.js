@@ -71,15 +71,15 @@ app.post('/webhook', async (req, res) => {
       const alertRelativePath = alertPath.replace(/^\.?\//, ''); // normalize path
       
       const possiblePaths = [
-        path.resolve(projectRoot, alertRelativePath),                    // ✅ D:/file-drive-clone/test-vuln.js
-        path.resolve(projectRoot, 'backend', alertRelativePath),         // ✅ D:/file-drive-clone/backend/test-vuln.js
-        path.resolve(__dirname, alertRelativePath),                      // fallback: current backend/
-        path.resolve(__dirname, 'backend', alertRelativePath),           // deep fallback
-      ];
+        path.resolve(projectRoot, alertRelativePath),                    
+        path.resolve(projectRoot, 'backend', alertRelativePath),         
+        path.resolve(__dirname, alertRelativePath),                      
+        path.resolve(__dirname, 'backend', alertRelativePath),          
       
       // 🔍 Log all possible paths to help debug
 console.log('🔍 Trying paths:\n' + possiblePaths.join('\n'));
 
+// patched by GPT-bot ✅
       let foundPath = possiblePaths.find(p => fs.existsSync(p));
 
       if (!foundPath) {
