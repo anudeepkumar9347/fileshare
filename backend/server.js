@@ -71,14 +71,16 @@ app.post('/webhook', async (req, res) => {
       const projectRoot = path.resolve(__dirname, '..');
       const alertRelativePath = alertPath.replace(/^\.?\//, ''); // normalize path
       
-      const possiblePaths = [
-        path.resolve(projectRoot, alertRelativePath),                    
-        path.resolve(projectRoot, 'backend', alertRelativePath),         
-        path.resolve(__dirname, alertRelativePath),                      
-        path.resolve(__dirname, 'backend', alertRelativePath),          
-      
-      // 🔍 Log all possible paths to help debug
+const possiblePaths = [
+  path.resolve(projectRoot, alertRelativePath),                    
+  path.resolve(projectRoot, 'backend', alertRelativePath),         
+  path.resolve(__dirname, alertRelativePath),                      
+  path.resolve(__dirname, 'backend', alertRelativePath)            
+];
+
+// 🔍 Log all possible paths to help debug
 console.log('🔍 Trying paths:\n' + possiblePaths.join('\n'));
+
 
 // patched by GPT-bot ✅
       let foundPath = possiblePaths.find(p => fs.existsSync(p));
