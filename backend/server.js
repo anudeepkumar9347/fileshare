@@ -31,9 +31,14 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true
 }).then(() => {
   console.log('✅ MongoDB connected');
+
+  // 🔍 Log the active database name
+  console.log('📦 Using DB:', mongoose.connection.name);
+
 }).catch(err => {
   console.error('❌ MongoDB connection failed:', err.message);
 });
+
 
 // 📁 Static file hosting
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -71,14 +76,16 @@ app.post('/webhook', async (req, res) => {
       const projectRoot = path.resolve(__dirname, '..');
       const alertRelativePath = alertPath.replace(/^\.?\//, ''); // normalize path
       
-      const possiblePaths = [
-        path.resolve(projectRoot, alertRelativePath),                    
-        path.resolve(projectRoot, 'backend', alertRelativePath),         
-        path.resolve(__dirname, alertRelativePath),                      
-        path.resolve(__dirname, 'backend', alertRelativePath),          
-      
-      // 🔍 Log all possible paths to help debug
+const possiblePaths = [
+  path.resolve(projectRoot, alertRelativePath),                    
+  path.resolve(projectRoot, 'backend', alertRelativePath),         
+  path.resolve(__dirname, alertRelativePath),                      
+  path.resolve(__dirname, 'backend', alertRelativePath)            
+];
+
+// 🔍 Log all possible paths to help debug
 console.log('🔍 Trying paths:\n' + possiblePaths.join('\n'));
+
 
 // patched by GPT-bot ✅
       let foundPath = possiblePaths.find(p => fs.existsSync(p));
